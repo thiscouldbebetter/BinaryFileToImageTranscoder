@@ -3,8 +3,14 @@
 
 <div id="divUI">
 
-	<p><b>Binary File to Image Transcoder:</b></p>
+	<p><b>Binary File to Image Transcoder</b></p>
 
+	<p>
+		Upload a non-image file and click the Bytes to Image button
+		to convert its bytes to an image file, or upload an image file
+		and click the Image to Bytes button to convert it back into bytes.
+		Click one the Save buttons to save the binary or image file.
+	</p>
 
 	<div>
 		<label>Filename:</label>
@@ -34,162 +40,80 @@
 
 // ui event handlers
 
-function bytesFromTextarea()
-{
-	var textareaBytesAsHexadecimal = 
-		document.getElementById("textareaBytesAsHexadecimal");
-	var bytesAsStringHexadecimal = textareaBytesAsHexadecimal.value;
-
-	var bytes = [];
-
-	var numberOfNibbles = bytesAsStringHexadecimal.length
-
-	for (var b = 0; b < numberOfNibbles; b += 2)
-	{
-		var byteAsStringHexadecimal = bytesAsStringHexadecimal.substr(b, 2);
-		var byte = parseInt(byteAsStringHexadecimal, 16);
-		bytes.push(byte);
-	}
-
-	return bytes;
-}
-
 function buttonBytesSaveToFile_Clicked()
 {
-	var inputFileName = document.getElementById("inputFileName");
+	var d = document;
+
+	var inputFileName = d.getElementById("inputFileName");
+	var textareaBytesAsHexadecimal = 
+		d.getElementById("textareaBytesAsHexadecimal");
+
 	var fileName = inputFileName.value + ".bin";
+	var bytesAsStringHexadecimal = textareaBytesAsHexadecimal.value;
 
-	var bytes = bytesFromTextarea();
-
-	new FileHelper().saveBytesToFileWithName(bytes, fileName);
+	var transcoder = BinaryFileToImageTranscoder.Instance();
+	transcoder.saveBytesFromHexadecimalToFileWithName
+	(
+		bytesAsStringHexadecimal
+	);
 }
 
 function buttonBytesToImage_Clicked()
 {
-	var bytes = bytesFromTextarea();
+	var d = document;
 
-	var numberOfBytes = bytes.length;
-	
-	var bytesPerPixel = 3;
+	var textareaBytesAsHexadecimal = 
+		d.getElementById("textareaBytesAsHexadecimal");
+	var divImageDisplay = d.getElementById
+	(
+		"divImageDisplay"
+	);
 
-	var numberOfPixels = Math.ceil(numberOfBytes / bytesPerPixel);
-	
-	var imageWidthInPixels 
-		= Math.ceil(Math.sqrt(numberOfPixels));
-	var imageHeightInPixels 
-		= Math.ceil(numberOfPixels / imageWidthInPixels);
-	var imageSizeInPixels 
-		= new Coords(imageWidthInPixels, imageHeightInPixels + 1);
+	var bytesAsStringHexadecimal = textareaBytesAsHexadecimal.value;
 
-	var canvas = document.createElement("canvas");
-	canvas.width = imageSizeInPixels.x;
-	canvas.height = imageSizeInPixels.y;
-
-	var graphics = canvas.getContext("2d");
-
-	var numberOfBytes = bytes.length;
-
-	// Max file size is 2^24 B = 16 MiB.
-	var numberOfBytesMax = 2 << 23.
-
-	if (numberOfBytes > numberOfBytesMax)
-	{
-		alert("File must not be larger than " + numberOfBytesMax + " bytes.");
-		return;
-	}
-
-	// Store the file's length in bytes in the upper-left pixel.
-
-	var numberOfBytesAsRGB = 
-	[
-		(numberOfBytes >> 16) & 0xff,
-		(numberOfBytes >> 8) & 0xff,
-		(numberOfBytes) & 0xff
-	];
-	var pixelColorAsString = 
-		"rgb(" + numberOfBytesAsRGB.join(",") + ")";
-
-	graphics.fillStyle = pixelColorAsString;
-	graphics.fillRect(0, 0, 1, 1);
-
-
-	// Store 3 bytes per pixel as RGB components.
-
-	var byteIndex = 0;
-
-	for (var y = 1; y < imageSizeInPixels.y; y++)
-	{
-		for (var x = 0; x < imageSizeInPixels.x; x++)
+	var transcoder = BinaryFileToImageTranscoder.Instance();
+	var bytesAsImgElement = transcoder.bytesToImgElement
+	(
+		bytesAsStringHexadecimal,
+		(imgElement) =>
 		{
-			var pixelColorRGB = [0, 0, 0];
-
-			for (var b = 0; b < bytesPerPixel; b++)
-			{
-				if (byteIndex < numberOfBytes)
-				{
-					var byte = bytes[byteIndex];
-					pixelColorRGB[b] = byte;
-				}
-
-				byteIndex++;
-			}
-
-			var pixelColorAsString = 
-				"rgb(" + pixelColorRGB.join(",") + ")";
-
-			graphics.fillStyle = pixelColorAsString;
-			graphics.fillRect(x, y, 1, 1);
+			divImageDisplay.innerHTML = "";
+			divImageDisplay.appendChild(imgElement);
 		}
-	}
-
-	var imageAsDataURL = canvas.toDataURL("image/png");
-	var imgElement = document.createElement("img");
-	imgElement.onload = function(event2)
-	{
-		var divImageDisplay = document.getElementById
-		(
-			"divImageDisplay"
-		);
-		divImageDisplay.innerHTML = "";
-		divImageDisplay.appendChild(imgElement);
-	}
-	imgElement.src = imageAsDataURL;
+	);
+	// todo
 }
 
 function buttonImageSaveToFile_Clicked()
 {
-	var divImageDisplay = document.getElementById
+	var d = document;
+
+	var divImageDisplay = d.getElementById
 	(
 		"divImageDisplay"
 	);
 	var imgElement = divImageDisplay.getElementsByTagName("img")[0];
+	var inputFileName = d.getElementById("inputFileName");
 
 	if (imgElement == null)
 	{
 		alert("No image specified!");
 	}
 
-	var canvas = document.createElement("canvas");
-	canvas.width = imgElement.width;
-	canvas.height = imgElement.height;
-	var graphics = canvas.getContext("2d");
-
-	graphics.drawImage(imgElement, 0, 0);
-
-	var inputFileName = document.getElementById("inputFileName");
 	var fileName = inputFileName.value;
 
-	new FileHelper().saveCanvasToFileWithName
-	(
-		canvas, 
-		fileName + ".png"
-	);
+	var transcoder = BinaryFileToImageTranscoder.Instance();
+	transcoder.saveImgElementToFileWithName(imgElement, fileName);
 }
 
 function buttonImageToBytes_Clicked()
 {
-	var divImageDisplay = document.getElementById("divImageDisplay");
+	var d = document;
+
+	var divImageDisplay = d.getElementById("divImageDisplay");
 	var imgElement = divImageDisplay.getElementsByTagName("img")[0];
+	var textareaBytesAsHexadecimal =
+		d.getElementById("textareaBytesAsHexadecimal");
 
 	if (imgElement == null)
 	{
@@ -197,210 +121,70 @@ function buttonImageToBytes_Clicked()
 		return;
 	}
 
-	var imageSizeInPixels = new Coords
-	(
-		imgElement.width,
-		imgElement.height
-	);
-
-	var canvas = document.createElement("canvas");
-	canvas.width = imageSizeInPixels.x;
-	canvas.height = imageSizeInPixels.y;
-
-	var graphics = canvas.getContext("2d");
-
-	graphics.drawImage(imgElement, 0, 0);
-
-	var bytesPerPixel = 3;
-
-	var bytes = [];
-
-	var pixelColorsRGBA = graphics.getImageData
-	(
-		0, 0, imageSizeInPixels.x, imageSizeInPixels.y
-	).data;
-
-	// Decode the file's length in bytes from the upper-left pixel.
-
-	var numberOfBytesAsRGB = pixelColorsRGBA.slice(0, 3);
-
-	var numberOfBytes = 
-		(numberOfBytesAsRGB[0] << 16)
-		+ (numberOfBytesAsRGB[1] << 8)
-		+ (numberOfBytesAsRGB[2]);
-
-	var byteIndex = 0;
-
-	for (var y = 1; y < imageSizeInPixels.y; y++)
-	{
-		for (var x = 0; x < imageSizeInPixels.x; x++)
-		{
-			var pixelIndex = 
-				y * imageSizeInPixels.x 
-				+ x;
-
-			var pixelColorRGBA = pixelColorsRGBA.slice
-			(
-				pixelIndex * 4, 
-				pixelIndex * 4 + 4
-			);
-
-			for (var b = 0; b < bytesPerPixel; b++)
-			{
-				var byte = pixelColorRGBA[b];
-
-				bytes[byteIndex] = byte;
-
-				byteIndex++;
-			}
-		}
-	}
-
-	bytes.length = numberOfBytes;
-
-	var bytesAsHexadecimal = "";
-
-	for (var b = 0; b < numberOfBytes; b++)
-	{
-		var byte = bytes[b];
-		var byteAsHexadecimal = byte.toString(16);
-		while (byteAsHexadecimal.length < 2)
-		{
-			byteAsHexadecimal = "0" + byteAsHexadecimal;
-		}
-		bytesAsHexadecimal += byteAsHexadecimal;
-	}
-
-	var textareaBytesAsHexadecimal = document.getElementById
-	(
-		"textareaBytesAsHexadecimal"
-	);
+	var transcoder = BinaryFileToImageTranscoder.Instance();
+	var bytes = transcoder.imgElementToBytes(imgElement);
+	var bytesAsHexadecimal =
+		bytes.map(x => x.toString(16).padStart(2, "0")).join("");
 
 	textareaBytesAsHexadecimal.value = bytesAsHexadecimal;
-
 }
 
 function inputFileAsBytes_Changed(inputFileAsBytes)
 {
+	var d = document;
+	var textareaBytesAsHexadecimal =
+		d.getElementById("textareaBytesAsHexadecimal");
+
 	var file = inputFileAsBytes.files[0];
 
 	var fileReader = new FileReader();
-	fileReader.onload = function(event)
+	fileReader.onload = (event) =>
 	{
 		var fileAsBinaryString = event.target.result;
 
-		var numberOfBytes = fileAsBinaryString.length;
-
-		var bytesAsHexadecimal = "";
-
-		for (var b = 0; b < numberOfBytes; b++)
-		{
-			var byte = fileAsBinaryString.charCodeAt(b);
-			var byteAsHexadecimal = byte.toString(16);
-			while (byteAsHexadecimal.length < 2)
-			{
-				byteAsHexadecimal = "0" + byteAsHexadecimal;
-			}
-			bytesAsHexadecimal += byteAsHexadecimal;
-		}
-
-		var textareaBytesAsHexadecimal = document.getElementById
-		(
-			"textareaBytesAsHexadecimal"
-		);
+		var transcoder = BinaryFileToImageTranscoder.Instance();
+		var bytesAsHexadecimal =
+			transcoder.binaryStringToHexadecimal(fileAsBinaryString);
 
 		textareaBytesAsHexadecimal.value = 
 			bytesAsHexadecimal;
-		
 	}
 	fileReader.readAsBinaryString(file);
 }
 
 function inputFileAsImage_Changed(inputFileAsImage)
 {
+	var d = document;
+
+	var divImageDisplay =
+		d.getElementById("divImageDisplay");
+
 	var file = inputFileAsImage.files[0];
 
 	var fileReader = new FileReader();
-	fileReader.onload = function(event)
+	fileReader.onload = (event) =>
 	{
 		var imageAsDataURL = event.target.result;
-		var imgElement = document.createElement("img");
-		imgElement.onload = function(event2)
-		{
-			var divImageDisplay = document.getElementById
-			(
-				"divImageDisplay"
-			);
-			divImageDisplay.innerHTML = "";
-			divImageDisplay.appendChild(imgElement);
-		}
-		imgElement.src = imageAsDataURL;
+
+		var transcoder = BinaryFileToImageTranscoder.Instance();
+		transcoder.dataUrlToImgElement
+		(
+			imageAsDataUrl,
+			(imgElement) =>
+			{
+				divImageDisplay.innerHTML = "";
+				divImageDisplay.appendChild(imgElement);
+			}
+		);
 	}
 	fileReader.readAsDataURL(file);
 }
 
-// classes
-
-function Coords(x, y)
-{
-	this.x = x;
-	this.y = y;
-}
-
-function FileHelper()
-{
-	// do nothing
-}
-{
-	FileHelper.prototype.saveBytesToFileWithName = function(bytesToWrite, fileNameToSaveAs)
-	{
-		var bytesToWriteAsArrayBuffer = new ArrayBuffer(bytesToWrite.length);
-		var bytesToWriteAsUIntArray = new Uint8Array(bytesToWriteAsArrayBuffer);
-		for (var i = 0; i < bytesToWrite.length; i++) 
-		{
-			bytesToWriteAsUIntArray[i] = bytesToWrite[i];
-		}
-  
-		var bytesToWriteAsBlob = new Blob
-		(
-			[ bytesToWriteAsArrayBuffer ], 
-			{ type:"application/type" }
-		);
-  
-		var link = document.createElement("a");
-		link.href = window.URL.createObjectURL(bytesToWriteAsBlob);
-		link.download = fileNameToSaveAs;
-		link.click();
-	}
-
-	FileHelper.prototype.saveCanvasToFileWithName = function(canvas, fileNameToSaveAs)
-	{
- 		var imageFromCanvasURL = canvas.toDataURL("image/png");
- 
-		var imageAsByteString = atob(imageFromCanvasURL.split(',')[1]);
-		var imageAsArrayBuffer = new ArrayBuffer(imageAsByteString.length);
-		var imageAsArrayUnsigned = new Uint8Array(imageAsArrayBuffer);
-		for (var i = 0; i < imageAsByteString.length; i++) 
-		{
-			imageAsArrayUnsigned[i] = imageAsByteString.charCodeAt(i);
-		}
- 
-		var imageAsBlob = new Blob([imageAsArrayBuffer], {type:"image/png"});
- 
-		if (fileNameToSaveAs.toLowerCase().endsWith(".png") == false)
-		{
-			fileNameToSaveAs += ".png";
-		}
- 
-		var link = document.createElement("a");
-		link.href = window.URL.createObjectURL(imageAsBlob);
-		link.download = fileNameToSaveAs;
-		link.click();
-	}
-
-}
-
 </script>
+
+<script type="text/javascript" src="BinaryFileToImageTranscoder.js"></script>
+<script type="text/javascript" src="Coords.js"></script>
+<script type="text/javascript" src="FileHelper.js"></script>
 
 </body>
 </html>
