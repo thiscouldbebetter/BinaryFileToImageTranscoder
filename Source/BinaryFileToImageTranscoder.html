@@ -6,7 +6,7 @@
 	<p><b>Binary File to Image Transcoder</b></p>
 
 	<p>
-		Upload a non-image file and click the Bytes to Image button
+		Upload a data file and click the Bytes to Image button
 		to convert its bytes to an image file, or upload an image file
 		and click the Image to Bytes button to convert it back into bytes.
 		Click one the Save buttons to save the binary or image file.
@@ -19,172 +19,29 @@
 
 	<div>
 		<label>Bytes:</label><br />
-		<input type="file" onchange="inputFileAsBytes_Changed(this);"></input><br />
+		<input type="file" onchange="UiEventHandler.inputFileAsBytes_Changed(this);"></input><br />
 		<textarea id="textareaBytesAsHexadecimal" cols="32" rows="16"></textarea><br />
-		<button onclick="buttonBytesSaveToFile_Clicked();">Save Bytes</button><br />
+		<button onclick="UiEventHandler.buttonBytesSaveToFile_Clicked();">Save Bytes</button><br />
 	</div>
 
-	<button onclick="buttonBytesToImage_Clicked();">Bytes to Image</button>
-	<button onclick="buttonImageToBytes_Clicked();">Image to Bytes</button>
+	<button onclick="UiEventHandler.buttonBytesToImage_Clicked();">Bytes to Image</button>
+	<button onclick="UiEventHandler.buttonImageToBytes_Clicked();">Image to Bytes</button>
 
 	<div>
 		<label>Image:</label><br />
-		<input type="file" onchange="inputFileAsImage_Changed(this);"></input><br />
+		<input type="file" onchange="UiEventHandler.inputFileAsImage_Changed(this);"></input><br />
 		<div id="divImageDisplay"></div><br />
-		<button onclick="buttonImageSaveToFile_Clicked();">Save Image</button><br />
+		<button onclick="UiEventHandler.buttonImageSaveToFile_Clicked();">Save Image</button><br />
 	</div>
 
 </div>
 
-<script type="text/javascript">
-
-// ui event handlers
-
-function buttonBytesSaveToFile_Clicked()
-{
-	var d = document;
-
-	var inputFileName = d.getElementById("inputFileName");
-	var textareaBytesAsHexadecimal = 
-		d.getElementById("textareaBytesAsHexadecimal");
-
-	var fileName = inputFileName.value + ".bin";
-	var bytesAsStringHexadecimal = textareaBytesAsHexadecimal.value;
-
-	var transcoder = BinaryFileToImageTranscoder.Instance();
-	transcoder.saveBytesFromHexadecimalToFileWithName
-	(
-		bytesAsStringHexadecimal
-	);
-}
-
-function buttonBytesToImage_Clicked()
-{
-	var d = document;
-
-	var textareaBytesAsHexadecimal = 
-		d.getElementById("textareaBytesAsHexadecimal");
-	var divImageDisplay = d.getElementById
-	(
-		"divImageDisplay"
-	);
-
-	var bytesAsStringHexadecimal = textareaBytesAsHexadecimal.value;
-
-	var transcoder = BinaryFileToImageTranscoder.Instance();
-	var bytesAsImgElement = transcoder.bytesToImgElement
-	(
-		bytesAsStringHexadecimal,
-		(imgElement) =>
-		{
-			divImageDisplay.innerHTML = "";
-			divImageDisplay.appendChild(imgElement);
-		}
-	);
-	// todo
-}
-
-function buttonImageSaveToFile_Clicked()
-{
-	var d = document;
-
-	var divImageDisplay = d.getElementById
-	(
-		"divImageDisplay"
-	);
-	var imgElement = divImageDisplay.getElementsByTagName("img")[0];
-	var inputFileName = d.getElementById("inputFileName");
-
-	if (imgElement == null)
-	{
-		alert("No image specified!");
-	}
-
-	var fileName = inputFileName.value;
-
-	var transcoder = BinaryFileToImageTranscoder.Instance();
-	transcoder.saveImgElementToFileWithName(imgElement, fileName);
-}
-
-function buttonImageToBytes_Clicked()
-{
-	var d = document;
-
-	var divImageDisplay = d.getElementById("divImageDisplay");
-	var imgElement = divImageDisplay.getElementsByTagName("img")[0];
-	var textareaBytesAsHexadecimal =
-		d.getElementById("textareaBytesAsHexadecimal");
-
-	if (imgElement == null)
-	{
-		alert("No image specified!");
-		return;
-	}
-
-	var transcoder = BinaryFileToImageTranscoder.Instance();
-	var bytes = transcoder.imgElementToBytes(imgElement);
-	var bytesAsHexadecimal =
-		bytes.map(x => x.toString(16).padStart(2, "0")).join("");
-
-	textareaBytesAsHexadecimal.value = bytesAsHexadecimal;
-}
-
-function inputFileAsBytes_Changed(inputFileAsBytes)
-{
-	var d = document;
-	var textareaBytesAsHexadecimal =
-		d.getElementById("textareaBytesAsHexadecimal");
-
-	var file = inputFileAsBytes.files[0];
-
-	var fileReader = new FileReader();
-	fileReader.onload = (event) =>
-	{
-		var fileAsBinaryString = event.target.result;
-
-		var transcoder = BinaryFileToImageTranscoder.Instance();
-		var bytesAsHexadecimal =
-			transcoder.binaryStringToHexadecimal(fileAsBinaryString);
-
-		textareaBytesAsHexadecimal.value = 
-			bytesAsHexadecimal;
-	}
-	fileReader.readAsBinaryString(file);
-}
-
-function inputFileAsImage_Changed(inputFileAsImage)
-{
-	var d = document;
-
-	var divImageDisplay =
-		d.getElementById("divImageDisplay");
-
-	var file = inputFileAsImage.files[0];
-
-	var fileReader = new FileReader();
-	fileReader.onload = (event) =>
-	{
-		var imageAsDataURL = event.target.result;
-
-		var transcoder = BinaryFileToImageTranscoder.Instance();
-		transcoder.dataUrlToImgElement
-		(
-			imageAsDataUrl,
-			(imgElement) =>
-			{
-				divImageDisplay.innerHTML = "";
-				divImageDisplay.appendChild(imgElement);
-			}
-		);
-	}
-	fileReader.readAsDataURL(file);
-}
-
-</script>
-
 <script type="text/javascript" src="BinaryFileToImageTranscoder.js"></script>
 <script type="text/javascript" src="Coords.js"></script>
 <script type="text/javascript" src="FileHelper.js"></script>
+<script type="text/javascript" src="UiEventHandler.js"></script>
+
+<script type="text/javascript" src="Imports.js"></script>
 
 </body>
 </html>
